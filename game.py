@@ -77,6 +77,24 @@ class MyGame(arcade.Window):
         for card in self.card_list:
             self.piles[settings.BOTTOM_FACE_DOWN_PILE].append(card)
 
+        # - Pull from that pile into the middle piles, all face-down
+        # Loop for each pile
+        for pile_no in range(settings.PLAY_PILE_1, settings.PLAY_PILE_7 + 1):
+            # Deal proper number of cards for that pile
+            for j in range(pile_no - settings.PLAY_PILE_1 + 1):
+                # Pop the card off the deck we are dealing from
+                card = self.piles[settings.BOTTOM_FACE_DOWN_PILE].pop()
+                # Put in the proper pile
+                self.piles[pile_no].append(card)
+                # Move card to same position as pile we just put it in
+                card.position = self.pile_mat_list[pile_no].position
+                # Put on top in draw order
+                self.pull_to_top(card)
+        
+        # Flip up the top cards
+        for i in range(settings.PLAY_PILE_1, settings.PLAY_PILE_7 + 1):
+            self.piles[i][-1].face_up()
+
     def pull_to_top(self, card: arcade.Sprite):
         """ Pull card to top of rendering order (last to render, looks on-top) """
         # Remove, and append to the end
@@ -101,12 +119,55 @@ class MyGame(arcade.Window):
         if len(cards) > 0:
             # Might be a stack of cards, get the top one
             primary_card = cards[-1]
-            # All other cases, grab the face-up card we are clicking on
-            self.held_cards = [primary_card]
-            # Save the position
-            self.held_cards_original_position = [self.held_cards[0].position]
-            # Put on top in drawing order
-            self.pull_to_top(self.held_cards[0])
+            # Figure out what pile the card is in
+            pile_index = self.get_pile_for_card(primary_card)
+
+            # Are we clicking on the bottom deck, to flip three cards?
+            if pile_index == settings.BOTTOM_FACE_DOWN_PILE:
+                card = self.piles[settings.BOTTOM_FACE_DOWN_PILE][-1]
+                # Flip face up
+                card.face_up()
+                # Move card position to bottom-right face up pile
+                card.position = self.pile_mat_list[settings.BOTTOM_FACE_UP_PILE].position
+                # Remove card from face down pile
+                self.piles[settings.BOTTOM_FACE_DOWN_PILE].remove(card)
+                # Move card to face up list
+                self.piles[settings.BOTTOM_FACE_UP_PILE].append(card)
+                # Put on top draw-order wise
+                self.pull_to_top(card)
+
+            else:
+                # All other cases, grab the face-up card we are clicking on
+                self.held_cards = [primary_card]
+                # Save the position
+                self.held_cards_original_position = [self.held_cards[0].position]
+                # Put on top in drawing order
+                self.pull_to_top(self.held_cards[0])
+
+                # Is this a stack of cards? If so, grab the other cards too
+                card_index = self.piles[pile_index].index(primary_card)
+                for i in range(card_index + 1, len(self.piles[pile_index])):
+                    card = self.piles[pile_index][i]
+                    self.held_cards.append(card)
+                    self.held_cards_original_position.append(card.position)
+                    self.pull_to_top(card)
+
+        else:
+            # Click on a mat instead of a card?
+            mats = arcade.get_sprites_at_point((x, y), self.pile_mat_list)
+
+            if len(mats) > 0:
+                mat = mats[0]
+                mat_index = self.pile_mat_list.index(mat)
+                # Is it our turned over flip mat? and no cards on it?
+                if mat_index == settings.BOTTOM_FACE_DOWN_PILE and len(self.piles[settings.BOTTOM_FACE_DOWN_PILE]) == 0:
+                    # Flip the deck back over so we can restart
+                    temp_list = self.piles[settings.BOTTOM_FACE_UP_PILE].copy()
+                    for card in reversed(temp_list):
+                        card.face_down()
+                        self.piles[settings.BOTTOM_FACE_UP_PILE].remove(card)
+                        self.piles[settings.BOTTOM_FACE_DOWN_PILE].append(card)
+                        card.position = self.pile_mat_list[settings.BOTTOM_FACE_DOWN_PILE].position
 
     def get_last_cards(self, card_in_hand):
         """ get a SpriteList of all last cards in a pile """
@@ -121,15 +182,10 @@ class MyGame(arcade.Window):
 
     def get_closest_sprite(self, card_in_hand):
         pile_from_mat, distance_from_mat = arcade.get_closest_sprite(card_in_hand, self.pile_mat_list)
-        print("pile_from_mat  ",pile_from_mat)
         last_cards = self.get_last_cards(card_in_hand)
-        print("last cards  ", len(last_cards))
         if last_cards:
             pile_from_card, distance_from_card = arcade.get_closest_sprite(card_in_hand, last_cards)   # returns the nearest card but not the corresponding pile
-            print('distance_from_mat: ', distance_from_mat)
-            print('distance_from_card: ', distance_from_card)
             if distance_from_mat > distance_from_card:
-                print("the pile from card  ", pile_from_card)
                 #  get the pile correspdonding to that card
                 return pile_from_card, self.get_pile_for_card(pile_from_card)
         return pile_from_mat, self.pile_mat_list.index(pile_from_mat)
@@ -143,14 +199,16 @@ class MyGame(arcade.Window):
         
         # Find the closest pile, in case we are in contact with more than one
         pile, pile_index = self.get_closest_sprite(self.held_cards[0])
-        print("pile: ", pile)
         reset_position = True
+
+        #  the pile from where the clicked card came from
+        last_pile_index = self.get_pile_for_card(self.held_cards[0])
 
         # See if we are in contact with the closest pile or the last card in the pile
         if arcade.check_for_collision(self.held_cards[0], pile):
 
             #  Is it the same pile we came from?
-            if pile_index == self.get_pile_for_card(self.held_cards[0]):
+            if pile_index == last_pile_index:
                 # If so, who cares. We'll just reset our position.
                 pass
 
@@ -170,12 +228,18 @@ class MyGame(arcade.Window):
                         dropped_card.position = pile.center_x, \
                                                 pile.center_y - settings.CARD_VERTICAL_OFFSET * i
 
+                
                 for card in self.held_cards:
                     # Cards are in the right position, but we need to move them to the right list
                     self.move_card_to_new_pile(card, pile_index)
 
                 # Success, don't reset position of cards
                 reset_position = False
+
+                # Flip over top card
+                if len(self.piles[last_pile_index]) > 0:
+                    top_card = self.piles[last_pile_index][-1]
+                    top_card.face_up()
 
             # Release on top play pile? And only one card held?
             elif settings.TOP_PILE_1 <= pile_index <= settings.TOP_PILE_4 and len(self.held_cards) == 1:
@@ -221,6 +285,12 @@ class MyGame(arcade.Window):
         """ Move the card to a new pile """
         self.remove_card_from_pile(card)
         self.piles[pile_index].append(card)
+
+    def on_key_press(self, symbol: int, modifiers: int):
+        """ User presses key """
+        if symbol == arcade.key.R:
+            # Restart
+            self.setup()
 
 
 def main():

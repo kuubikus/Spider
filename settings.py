@@ -30,6 +30,9 @@ SCREEN_WIDTH = 1024
 SCREEN_HEIGHT = 768
 SCREEN_TITLE = "Drag and Drop Cards"
 
+# Face down image
+FACE_DOWN_IMAGE = ":resources:images/cards/cardBack_red2.png"
+
 # The Y of the top row (4 piles)
 TOP_Y = SCREEN_HEIGHT - MAT_HEIGHT / 2 - MAT_HEIGHT * VERTICAL_MARGIN_PERCENT
 

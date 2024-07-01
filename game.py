@@ -51,13 +51,9 @@ class MyGame(arcade.Window):
         # Sprite list with all the mats tha cards lay on.
         self.pile_mat_list: arcade.SpriteList = arcade.SpriteList()
 
-        # Create the mats for the bottom face down and face up piles
+        # Create the mat for the bottom face down pile
         pile = arcade.SpriteSolidColor(settings.MAT_WIDTH, settings.MAT_HEIGHT, arcade.csscolor.DARK_OLIVE_GREEN)
         pile.position = settings.START_X, settings.BOTTOM_Y
-        self.pile_mat_list.append(pile)
-
-        pile = arcade.SpriteSolidColor(settings.MAT_WIDTH, settings.MAT_HEIGHT, arcade.csscolor.DARK_OLIVE_GREEN)
-        pile.position = settings.START_X + settings.X_SPACING, settings.BOTTOM_Y
         self.pile_mat_list.append(pile)
 
         # Create the 10 piles
@@ -130,19 +126,21 @@ class MyGame(arcade.Window):
             # Figure out what pile the card is in
             pile_index = self.get_pile_for_card(primary_card)
 
-            # Are we clicking on the bottom deck, to flip three cards?
+            # Are we clicking on the bottom deck, to deal cards on top?
             if pile_index == settings.BOTTOM_FACE_DOWN_PILE:
-                card = self.piles[settings.BOTTOM_FACE_DOWN_PILE][-1]
-                # Flip face up
-                card.face_up()
-                # Move card position to bottom-right face up pile
-                card.position = self.pile_mat_list[settings.BOTTOM_FACE_UP_PILE].position
-                # Remove card from face down pile
-                self.piles[settings.BOTTOM_FACE_DOWN_PILE].remove(card)
-                # Move card to face up list
-                self.piles[settings.BOTTOM_FACE_UP_PILE].append(card)
-                # Put on top draw-order wise
-                self.pull_to_top(card)
+                for pile_index in range(settings.PLAY_PILE_1, settings.PLAY_PILE_10 + 1):
+                    pile = self.piles[pile_index]
+                    if pile and self.piles[settings.BOTTOM_FACE_DOWN_PILE]:
+                        last_card = pile[-1]
+                        card = self.piles[settings.BOTTOM_FACE_DOWN_PILE][-1]
+                        # Flip face up
+                        card.face_up()
+                        # Move card to position
+                        card.position = last_card.center_x, last_card.center_y - settings.CARD_VERTICAL_OFFSET
+                        # Remove card from face down pile
+                        self.piles[settings.BOTTOM_FACE_DOWN_PILE].remove(card)
+                        # Put on top draw-order wise
+                        self.pull_to_top(card)
 
             else:
                 # All other cases, grab the face-up card we are clicking on
@@ -159,23 +157,6 @@ class MyGame(arcade.Window):
                     self.held_cards.append(card)
                     self.held_cards_original_position.append(card.position)
                     self.pull_to_top(card)
-
-        else:
-            # Click on a mat instead of a card?
-            mats = arcade.get_sprites_at_point((x, y), self.pile_mat_list)
-
-            if len(mats) > 0:
-                mat = mats[0]
-                mat_index = self.pile_mat_list.index(mat)
-                # Is it our turned over flip mat? and no cards on it?
-                if mat_index == settings.BOTTOM_FACE_DOWN_PILE and len(self.piles[settings.BOTTOM_FACE_DOWN_PILE]) == 0:
-                    # Flip the deck back over so we can restart
-                    temp_list = self.piles[settings.BOTTOM_FACE_UP_PILE].copy()
-                    for card in reversed(temp_list):
-                        card.face_down()
-                        self.piles[settings.BOTTOM_FACE_UP_PILE].remove(card)
-                        self.piles[settings.BOTTOM_FACE_DOWN_PILE].append(card)
-                        card.position = self.pile_mat_list[settings.BOTTOM_FACE_DOWN_PILE].position
 
     def get_last_cards(self, card_in_hand):
         """ get a SpriteList of all last cards in a pile """

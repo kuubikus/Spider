@@ -25,6 +25,21 @@ class MyGame(arcade.Window):
         #  a list of lists for each pile
         self.piles = None
 
+    def place_cards(self, pile_no, i):
+        for x in range(i):
+            # Pop the card off the deck we are dealing from
+            card = self.piles[settings.BOTTOM_FACE_DOWN_PILE].pop()
+            # Put in the proper pile
+            self.piles[pile_no].append(card)
+            # Move card to same position as pile we just put it in
+            if x == 0:
+                card.position = self.pile_mat_list[pile_no].position
+            else:
+                last_card = self.piles[pile_no][-2]
+                card.position = last_card.center_x, last_card.center_y - settings.CARD_VERTICAL_OFFSET
+            # Put on top in draw order
+            self.pull_to_top(card)
+
     def setup(self):
         """ Set up the game here. Call this function to restart the game. """
         #  cards being dragged
@@ -75,20 +90,17 @@ class MyGame(arcade.Window):
 
         # - Pull from that pile into the middle piles, all face-down
         # Loop for each pile
-        for pile_no in range(settings.PLAY_PILE_1, settings.PLAY_PILE_7 + 1):
+        for pile_no in range(settings.PLAY_PILE_1, settings.PLAY_PILE_10 + 1):
             # Deal proper number of cards for that pile
-            for j in range(pile_no - settings.PLAY_PILE_1 + 1):
-                # Pop the card off the deck we are dealing from
-                card = self.piles[settings.BOTTOM_FACE_DOWN_PILE].pop()
-                # Put in the proper pile
-                self.piles[pile_no].append(card)
-                # Move card to same position as pile we just put it in
-                card.position = self.pile_mat_list[pile_no].position
-                # Put on top in draw order
-                self.pull_to_top(card)
-        
+            if pile_no < 6:
+                # Deal 6 cards
+                self.place_cards(pile_no,6)
+            else:
+                # Deal 5 cards
+                self.place_cards(pile_no,5)
+                
         # Flip up the top cards
-        for i in range(settings.PLAY_PILE_1, settings.PLAY_PILE_7 + 1):
+        for i in range(settings.PLAY_PILE_1, settings.PLAY_PILE_10 + 1):
             self.piles[i][-1].face_up()
 
     def pull_to_top(self, card: arcade.Sprite):

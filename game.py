@@ -12,11 +12,22 @@ class MyGame(arcade.Window):
 
     def __init__(self):
         super().__init__(settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT, settings.SCREEN_TITLE)
+        # Timer set up
         self.total_time = 0.0
         self.timer_text = arcade.Text(
             text="00:00:00",
             start_x=settings.TIMER_X,
             start_y=settings.TIMER_Y,
+            color=arcade.color.WHITE,
+            font_size=10,
+            anchor_x="center",
+        )
+        # Score set up
+        self.score = 500
+        self.score_text = arcade.Text(
+            text=f"Score: {self.score}",
+            start_x=settings.TIMER_X,
+            start_y=settings.SCORE_Y,
             color=arcade.color.WHITE,
             font_size=10,
             anchor_x="center",
@@ -50,7 +61,10 @@ class MyGame(arcade.Window):
 
     def setup(self):
         """ Set up the game here. Call this function to restart the game. """
+        # Timer
         self.total_time = 0.0
+        # Score
+        self.score = 500
         #  cards being dragged
         self.held_cards = []
         self.held_cards_og_pos = []
@@ -122,6 +136,8 @@ class MyGame(arcade.Window):
         self.pile_mat_list.draw()
         # Draw timer
         self.timer_text.draw()
+        # Draw Score
+        self.score_text.draw()
         #  draw cards
         self.card_list.draw()
 
@@ -267,6 +283,8 @@ class MyGame(arcade.Window):
                 if len(self.piles[last_pile_index]) > 0:
                     top_card = self.piles[last_pile_index][-1]
                     top_card.face_up()
+                    # Turning over a card add 10 points
+                    self.score += 10
 
         if reset_position:
             # Where-ever we were dropped, it wasn't valid. Reset the each card's position
@@ -320,6 +338,8 @@ class MyGame(arcade.Window):
         seconds_100s = int((self.total_time - seconds) * 100)
         # Use string formatting to create a new text string for our timer
         self.timer_text.text = f"{minutes:02d}:{seconds:02d}:{seconds_100s:02d}"
+        # Update score text
+        self.score_text.text = f"Score: {self.score}"
 
 def main():
     """ Main function """

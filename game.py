@@ -156,9 +156,20 @@ class MyGame(arcade.Window):
                 card_index = self.piles[pile_index].index(primary_card)
                 for i in range(card_index + 1, len(self.piles[pile_index])):
                     card = self.piles[pile_index][i]
-                    self.held_cards.append(card)
-                    self.held_cards_original_position.append(card.position)
-                    self.pull_to_top(card)
+                    previous_card = self.held_cards[-1]
+                    card_value_index = settings.CARD_VALUES.index(card.value)
+                    previous_card_value_index = settings.CARD_VALUES.index(previous_card.value)
+                    if card.suit == previous_card.suit and previous_card_value_index - card_value_index == 1:
+                        self.held_cards.append(card)
+                        self.held_cards_original_position.append(card.position)
+                        self.pull_to_top(card)
+                    else:
+                        # The stack is not moveable according to rules
+                        self.held_cards = []
+                        # Pull the remaining cards on top
+                        for remaining_card in self.piles[pile_index][i:]:
+                            self.pull_to_top(remaining_card)
+                        break
 
     def get_last_cards(self, card_in_hand):
         """ get a SpriteList of all last cards in a pile """

@@ -12,7 +12,15 @@ class MyGame(arcade.Window):
 
     def __init__(self):
         super().__init__(settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT, settings.SCREEN_TITLE)
-        
+        self.total_time = 0.0
+        self.timer_text = arcade.Text(
+            text="00:00:00",
+            start_x=settings.TIMER_X,
+            start_y=settings.TIMER_Y,
+            color=arcade.color.WHITE,
+            font_size=10,
+            anchor_x="center",
+        )
         #  list of cards
         self.card_list = None
         arcade.set_background_color(arcade.color.AMAZON)
@@ -42,6 +50,7 @@ class MyGame(arcade.Window):
 
     def setup(self):
         """ Set up the game here. Call this function to restart the game. """
+        self.total_time = 0.0
         #  cards being dragged
         self.held_cards = []
         self.held_cards_og_pos = []
@@ -111,6 +120,8 @@ class MyGame(arcade.Window):
         self.clear()
         #  draw mats
         self.pile_mat_list.draw()
+        # Draw timer
+        self.timer_text.draw()
         #  draw cards
         self.card_list.draw()
 
@@ -298,6 +309,17 @@ class MyGame(arcade.Window):
             # Restart
             self.setup()
 
+    def on_update(self, delta_time):
+        # Accumulate the total time
+        self.total_time += delta_time
+        # Calculate minutes
+        minutes = int(self.total_time) // 60
+        # Calculate seconds by using a modulus (remainder)
+        seconds = int(self.total_time) % 60
+        # Calculate 100s of a second
+        seconds_100s = int((self.total_time - seconds) * 100)
+        # Use string formatting to create a new text string for our timer
+        self.timer_text.text = f"{minutes:02d}:{seconds:02d}:{seconds_100s:02d}"
 
 def main():
     """ Main function """

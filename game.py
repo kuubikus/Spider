@@ -184,9 +184,7 @@ class MyGame(arcade.Window):
                 for i in range(card_index + 1, len(self.piles[pile_index])):
                     card = self.piles[pile_index][i]
                     previous_card = self.held_cards[-1]
-                    card_value_index = settings.CARD_VALUES.index(card.value)
-                    previous_card_value_index = settings.CARD_VALUES.index(previous_card.value)
-                    if card.suit == previous_card.suit and previous_card_value_index - card_value_index == 1:
+                    if previous_card.value_index - card.value_index == 1:
                         self.held_cards.append(card)
                         self.held_cards_original_position.append(card.position)
                         self.pull_to_top(card)
@@ -213,11 +211,7 @@ class MyGame(arcade.Window):
         #  check if there are cards in the pile
         if self.piles[pile_index]:
             last_card = self.piles[pile_index][-1]
-            last_card_value = last_card.value
-            last_card_index = settings.CARD_VALUES.index(last_card_value)
-            current_card_value = self.held_cards[0].value
-            current_card_value_index = settings.CARD_VALUES.index(current_card_value)
-            if last_card_index - current_card_value_index == 1:
+            if last_card.value_index - self.held_cards[0].value_index == 1:
                 return True
             else:
                 return False
@@ -282,9 +276,14 @@ class MyGame(arcade.Window):
                 # Flip over top card
                 if len(self.piles[last_pile_index]) > 0:
                     top_card = self.piles[last_pile_index][-1]
-                    top_card.face_up()
-                    # Turning over a card add 10 points
-                    self.score += 10
+                    if not top_card.is_face_up:
+                        top_card.face_up()
+                        # Turning over a card add 10 points
+                        self.score += 10
+
+                # Check if the move resulted in forming a foundation
+                if self.foundation_completed(pile_index):
+                    print("Foundation completed")
 
         if reset_position:
             # Where-ever we were dropped, it wasn't valid. Reset the each card's position
@@ -327,6 +326,32 @@ class MyGame(arcade.Window):
             # Restart
             self.setup()
 
+    def foundation_completed(self, pile_index):
+        """ Checks if the cards in a pile make up a foundation """
+        sequence = []
+        pile = self.piles[pile_index]
+        pile_upwards = [card for card in pile if card.is_face_up]
+        print("length of pile ", len(pile_upwards))
+        for card_index in range(-1,-len(pile_upwards),-1):
+            card = pile[card_index]
+            if len(sequence) > 0:
+                # If sequence valid then add card
+                if card.value_index - sequence[-1].value_index == 1:
+                    sequence.append(card)
+                # If card can't be added then stop looking
+                else:
+                    return False
+                
+            # Check if the sequence has all the values 
+            if len(sequence) == len(settings.CARD_VALUES):
+                return True
+            
+            # Sequence is empty and the top card is an Ace
+            if card.value == "A" and len(sequence) == 0:
+                # Start the sequence
+                sequence.append(card)
+        return False
+            
     def on_update(self, delta_time):
         # Accumulate the total time
         self.total_time += delta_time

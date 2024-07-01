@@ -45,17 +45,12 @@ class MyGame(arcade.Window):
         pile.position = settings.START_X + settings.X_SPACING, settings.BOTTOM_Y
         self.pile_mat_list.append(pile)
 
-        # Create the seven middle piles
-        for i in range(7):
-            pile = arcade.SpriteSolidColor(settings.MAT_WIDTH, settings.MAT_HEIGHT, arcade.csscolor.DARK_OLIVE_GREEN)
-            pile.position = settings.START_X + i * settings.X_SPACING, settings.MIDDLE_Y
-            self.pile_mat_list.append(pile)
-
-        # Create the top "play" piles
-        for i in range(4):
+        # Create the 10 piles
+        for i in range(10):
             pile = arcade.SpriteSolidColor(settings.MAT_WIDTH, settings.MAT_HEIGHT, arcade.csscolor.DARK_OLIVE_GREEN)
             pile.position = settings.START_X + i * settings.X_SPACING, settings.TOP_Y
             self.pile_mat_list.append(pile)
+
 
         # Sprite list with all the cards, no matter what pile they are in.
         self.card_list = arcade.SpriteList()
@@ -196,7 +191,6 @@ class MyGame(arcade.Window):
         else:
             return True
 
-
     def get_closest_sprite(self, card_in_hand):
         pile_from_mat, distance_from_mat = arcade.get_closest_sprite(card_in_hand, self.pile_mat_list)
         last_cards = self.get_last_cards(card_in_hand)
@@ -229,7 +223,7 @@ class MyGame(arcade.Window):
                 pass
 
             # Is it on a middle play pile?
-            elif settings.PLAY_PILE_1 <= pile_index <= settings.PLAY_PILE_7:
+            elif settings.PLAY_PILE_1 <= pile_index <= settings.PLAY_PILE_10:
                 # Are there already cards there?
                 if len(self.piles[pile_index]) > 0:
                     # Move cards to proper position
@@ -247,22 +241,6 @@ class MyGame(arcade.Window):
                 
                 for card in self.held_cards:
                     # Cards are in the right position, but we need to move them to the right list
-                    self.move_card_to_new_pile(card, pile_index)
-
-                # Success, don't reset position of cards
-                reset_position = False
-
-                # Flip over top card
-                if len(self.piles[last_pile_index]) > 0:
-                    top_card = self.piles[last_pile_index][-1]
-                    top_card.face_up()
-
-            # Release on top play pile? And only one card held?
-            elif settings.TOP_PILE_1 <= pile_index <= settings.TOP_PILE_4 and len(self.held_cards) == 1:
-                # Move position of card to pile
-                self.held_cards[0].position = pile.position
-                # Move card to card list
-                for card in self.held_cards:
                     self.move_card_to_new_pile(card, pile_index)
 
                 # Success, don't reset position of cards

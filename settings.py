@@ -42,10 +42,13 @@ X_SPACING = MAT_WIDTH + MAT_WIDTH * HORIZONTAL_MARGIN_PERCENT
 # If we fan out cards stacked on each other, how far apart to fan them?
 CARD_VERTICAL_OFFSET = CARD_HEIGHT * CARD_SCALE * 0.3
 
-# Timer location
+# Timer and score location
 TIMER_X = SCREEN_WIDTH - 80
 TIMER_Y = TOP_Y + MAT_HEIGHT / 2
 SCORE_Y = TIMER_Y - 15
+
+# Start and end screens
+
 
 # Constants that represent "what pile is what" for the game
 PILE_COUNT = 12

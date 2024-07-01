@@ -7,11 +7,11 @@ import settings
 import random
 
 
-class MyGame(arcade.Window):
+class GameView(arcade.View):
     """ Main application class. """
 
     def __init__(self):
-        super().__init__(settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT, settings.SCREEN_TITLE)
+        super().__init__()
         # Timer set up
         self.total_time = 0.0
         self.timer_text = arcade.Text(
@@ -101,10 +101,10 @@ class MyGame(arcade.Window):
                     card.position = settings.START_X, settings.BOTTOM_Y
                     self.card_list.append(card)
         
-        """# Shuffle the cards
+        # Shuffle the cards
         for pos1 in range(len(self.card_list)):
             pos2 = random.randrange(len(self.card_list))
-            self.card_list.swap(pos1, pos2)"""
+            self.card_list.swap(pos1, pos2)
 
         self.piles = [[] for x in range(settings.PILE_COUNT)]
         # Put all the cards in the bottom face-down pile
@@ -125,6 +125,10 @@ class MyGame(arcade.Window):
         # Flip up the top cards
         for i in range(settings.PLAY_PILE_1, settings.PLAY_PILE_10 + 1):
             self.piles[i][-1].face_up()
+
+        # Load the start view
+        start_screen = StartView(self)
+        self.window.show_view(start_screen)
 
     def pull_to_top(self, card: arcade.Sprite):
         """ Pull card to top of rendering order (last to render, looks on-top) """
@@ -292,7 +296,7 @@ class MyGame(arcade.Window):
                     # Remove stack from game
                     self.remove_stack(sequence)
                     # Add points
-                    self.score += 100
+                    self.score += 130
 
         if reset_position:
             # Where-ever we were dropped, it wasn't valid. Reset the each card's position
@@ -393,11 +397,88 @@ class MyGame(arcade.Window):
         self.timer_text.text = f"{minutes:02d}:{seconds:02d}:{seconds_100s:02d}"
         # Update score text
         self.score_text.text = f"Score: {self.score}"
+        # Check if the game is over
+        if len(self.piles[settings.FOUNDATION_PILE]) == 104:
+            print("Game is done")
+            self.score += 1000000/self.total_time
+            # Load the end view
+            end_screen = EndView(self)
+            self.window.show_view(end_screen)
+
+class StartView(arcade.View):
+    """ View to show before the game starts """
+    def __init__(self, game_view):
+        super().__init__()
+        self.game_view = game_view
+    
+    def on_show_view(self):
+        arcade.set_background_color(arcade.color.AMAZON)
+
+    def on_draw(self):
+        self.game_view.on_draw()
+
+        arcade.draw_text("Click to start",
+                         settings.SCREEN_WIDTH / 2,
+                         settings.SCREEN_HEIGHT / 2,
+                         arcade.color.BLACK,
+                         font_size=20,
+                         anchor_x="center")
+
+    def on_mouse_press(self, _x, _y, _button, _modifiers):
+        """ If the user presses the mouse button, start the game. """
+        self.window.show_view(self.game_view)
+
+class EndView(arcade.View):
+    """ View to show when the game ends """
+    def __init__(self, game_view):
+        super().__init__()
+        self.game_view = game_view
+
+    def on_show_view(self):
+        arcade.set_background_color(arcade.color.AMAZON)
+
+    def on_draw(self):
+        #  draw mats
+        self.game_view.pile_mat_list.draw()
+        # Draw timer
+        self.game_view.timer_text.draw()
+        # Draw Score
+        self.game_view.score_text.draw()
+        #  draw cards
+        self.game_view.card_list.draw()
+
+        # Calculate minutes
+        minutes = int(self.game_view.total_time) // 60
+        # Calculate seconds by using a modulus (remainder)
+        seconds = int(self.game_view.total_time) % 60
+        # Calculate 100s of a second
+        seconds_100s = int((self.game_view.total_time - seconds) * 100)
+        # Use string formatting to create a new text string for our timer
+        timer_text = f"{minutes:02d}:{seconds:02d}:{seconds_100s:02d}"
+
+        arcade.draw_text("Click to re-start the game. "
+                         "Your score was {} with time {}".format(self.game_view.score, timer_text),
+                         settings.SCREEN_WIDTH / 2,
+                         settings.SCREEN_HEIGHT / 2,
+                         arcade.color.BLACK,
+                         font_size=20,
+                         multiline=True,
+                         anchor_x="center",
+                         width=375)
+    
+    def on_mouse_press(self, _x, _y, _button, _modifiers):
+        """ If the user presses the mouse button, re-start the game. """
+        game = GameView()
+        game.setup()
+        self.window.show_view(game)
 
 def main():
+
     """ Main function """
-    window = MyGame()
-    window.setup()
+    window = arcade.Window(settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT, settings.SCREEN_TITLE)
+    start_view = GameView()
+    window.show_view(start_view)
+    start_view.setup()
     arcade.run()
 
 

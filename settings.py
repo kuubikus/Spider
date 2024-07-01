@@ -48,7 +48,7 @@ TIMER_Y = TOP_Y + MAT_HEIGHT / 2
 SCORE_Y = TIMER_Y - 15
 
 # Constants that represent "what pile is what" for the game
-PILE_COUNT = 11
+PILE_COUNT = 12
 BOTTOM_FACE_DOWN_PILE = 0
 PLAY_PILE_1 = 1
 PLAY_PILE_2 = 2
@@ -60,3 +60,4 @@ PLAY_PILE_7 = 7
 PLAY_PILE_8 = 8
 PLAY_PILE_9 = 9
 PLAY_PILE_10 = 10
+FOUNDATION_PILE = 11

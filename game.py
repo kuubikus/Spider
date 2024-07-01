@@ -85,6 +85,10 @@ class MyGame(arcade.Window):
             pile.position = settings.START_X + i * settings.X_SPACING, settings.TOP_Y
             self.pile_mat_list.append(pile)
 
+        # Create foundation pile
+        pile = arcade.SpriteSolidColor(settings.MAT_WIDTH, settings.MAT_HEIGHT, arcade.csscolor.DARK_OLIVE_GREEN)
+        pile.position = settings.TIMER_X, settings.TIMER_Y/2
+        self.pile_mat_list.append(pile)
 
         # Sprite list with all the cards, no matter what pile they are in.
         self.card_list = arcade.SpriteList()
@@ -97,10 +101,10 @@ class MyGame(arcade.Window):
                     card.position = settings.START_X, settings.BOTTOM_Y
                     self.card_list.append(card)
         
-        # Shuffle the cards
+        """# Shuffle the cards
         for pos1 in range(len(self.card_list)):
             pos2 = random.randrange(len(self.card_list))
-            self.card_list.swap(pos1, pos2)
+            self.card_list.swap(pos1, pos2)"""
 
         self.piles = [[] for x in range(settings.PILE_COUNT)]
         # Put all the cards in the bottom face-down pile
@@ -281,9 +285,14 @@ class MyGame(arcade.Window):
                         # Turning over a card add 10 points
                         self.score += 10
 
-                # Check if the move resulted in forming a foundation
-                if self.foundation_completed(pile_index):
-                    print("Foundation completed")
+                # Check if the move resulted in forming a stack
+                sequence = self.stack_completed(pile_index)
+                if sequence:
+                    print("Stack completed")
+                    # Remove stack from game
+                    self.remove_stack(sequence)
+                    # Add points
+                    self.score += 100
 
         if reset_position:
             # Where-ever we were dropped, it wasn't valid. Reset the each card's position
@@ -326,32 +335,51 @@ class MyGame(arcade.Window):
             # Restart
             self.setup()
 
-    def foundation_completed(self, pile_index):
-        """ Checks if the cards in a pile make up a foundation """
+    def stack_completed(self, pile_index):
+        """ 
+        Checks if the cards in a pile make up a foundation
+        Return True if a foundation exists in a pile and the index of the King
+        """
         sequence = []
         pile = self.piles[pile_index]
         pile_upwards = [card for card in pile if card.is_face_up]
-        print("length of pile ", len(pile_upwards))
-        for card_index in range(-1,-len(pile_upwards),-1):
-            card = pile[card_index]
+        for card_index in range(-1,-len(pile_upwards)-1,-1):
+            card = pile_upwards[card_index]
             if len(sequence) > 0:
                 # If sequence valid then add card
                 if card.value_index - sequence[-1].value_index == 1:
                     sequence.append(card)
                 # If card can't be added then stop looking
                 else:
-                    return False
-                
+                    sequence =[]
+                    break
+
             # Check if the sequence has all the values 
             if len(sequence) == len(settings.CARD_VALUES):
-                return True
+                return sequence
             
             # Sequence is empty and the top card is an Ace
             if card.value == "A" and len(sequence) == 0:
                 # Start the sequence
                 sequence.append(card)
-        return False
-            
+
+        sequence = []
+        return sequence
+    
+    def remove_stack(self, sequence):
+        if self.piles[settings.FOUNDATION_PILE]:
+            previous_top_card = self.piles[settings.FOUNDATION_PILE][-1]
+            print("previous card pos ", previous_top_card.position)
+            for card in sequence:
+                card.position = previous_top_card.position[0], previous_top_card.position[1] - settings.CARD_VERTICAL_OFFSET
+                self.pull_to_top(card)
+                self.move_card_to_new_pile(card, settings.FOUNDATION_PILE)
+        else:
+            for card in sequence:
+                card.position = self.pile_mat_list[settings.FOUNDATION_PILE].position
+                self.pull_to_top(card)
+                self.move_card_to_new_pile(card, settings.FOUNDATION_PILE)
+
     def on_update(self, delta_time):
         # Accumulate the total time
         self.total_time += delta_time

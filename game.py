@@ -139,6 +139,8 @@ class MyGame(arcade.Window):
                         card.position = last_card.center_x, last_card.center_y - settings.CARD_VERTICAL_OFFSET
                         # Remove card from face down pile
                         self.piles[settings.BOTTOM_FACE_DOWN_PILE].remove(card)
+                        # Add card to correct pile
+                        self.move_card_to_new_pile(card, pile_index)
                         # Put on top draw-order wise
                         self.pull_to_top(card)
 

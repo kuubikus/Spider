@@ -61,11 +61,12 @@ class MyGame(arcade.Window):
         self.card_list = arcade.SpriteList()
 
         # Create every card
-        for card_suit in settings.CARD_SUITS:
-            for card_value in settings.CARD_VALUES:
-                card = cards.Card(card_suit, card_value, settings.CARD_SCALE)
-                card.position = settings.START_X, settings.BOTTOM_Y
-                self.card_list.append(card)
+        for x in range(2):
+            for card_suit in settings.CARD_SUITS:
+                for card_value in settings.CARD_VALUES:
+                    card = cards.Card(card_suit, card_value, settings.CARD_SCALE)
+                    card.position = settings.START_X, settings.BOTTOM_Y
+                    self.card_list.append(card)
         
         # Shuffle the cards
         for pos1 in range(len(self.card_list)):
@@ -180,6 +181,22 @@ class MyGame(arcade.Window):
                         pile_last_card_list.append(pile[-1])
         return pile_last_card_list
 
+    def is_placable(self, pile_index):
+        #  check if there are cards in the pile
+        if self.piles[pile_index]:
+            last_card = self.piles[pile_index][-1]
+            last_card_value = last_card.value
+            last_card_index = settings.CARD_VALUES.index(last_card_value)
+            current_card_value = self.held_cards[0].value
+            current_card_value_index = settings.CARD_VALUES.index(current_card_value)
+            if last_card_index - current_card_value_index == 1:
+                return True
+            else:
+                return False
+        else:
+            return True
+
+
     def get_closest_sprite(self, card_in_hand):
         pile_from_mat, distance_from_mat = arcade.get_closest_sprite(card_in_hand, self.pile_mat_list)
         last_cards = self.get_last_cards(card_in_hand)
@@ -190,7 +207,6 @@ class MyGame(arcade.Window):
                 return pile_from_card, self.get_pile_for_card(pile_from_card)
         return pile_from_mat, self.pile_mat_list.index(pile_from_mat)
 
-        
     def on_mouse_release(self, x: float, y: float, button: int, modifiers: int):
         """ Called when the user presses a mouse button. """
         # If we don't have any cards, who cares
@@ -204,8 +220,8 @@ class MyGame(arcade.Window):
         #  the pile from where the clicked card came from
         last_pile_index = self.get_pile_for_card(self.held_cards[0])
 
-        # See if we are in contact with the closest pile or the last card in the pile
-        if arcade.check_for_collision(self.held_cards[0], pile):
+        # See if we are in contact with the closest pile or the last card in the pile and in accordance with the rules
+        if arcade.check_for_collision(self.held_cards[0], pile) and self.is_placable(pile_index):
 
             #  Is it the same pile we came from?
             if pile_index == last_pile_index:
@@ -249,7 +265,13 @@ class MyGame(arcade.Window):
                 for card in self.held_cards:
                     self.move_card_to_new_pile(card, pile_index)
 
+                # Success, don't reset position of cards
                 reset_position = False
+
+                # Flip over top card
+                if len(self.piles[last_pile_index]) > 0:
+                    top_card = self.piles[last_pile_index][-1]
+                    top_card.face_up()
 
         if reset_position:
             # Where-ever we were dropped, it wasn't valid. Reset the each card's position

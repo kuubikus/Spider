@@ -28,7 +28,7 @@ class GameView(arcade.View):
                 child=button))
         
         @button.event("on_click")
-        def on_click_settings(event):
+        def on_click_button(event):
             print("Showing moves")
             # Show possible moves
             possible_moves = self.get_possible_moves()
@@ -238,7 +238,7 @@ class GameView(arcade.View):
                 #  if there is a last card
                 if len(pile) > 0:
                     #  not the same as the one in hand
-                    if pile[-1] != card_in_hand:
+                    if pile[-1] != card_in_hand and pile[-1].is_face_up:
                         pile_last_card_list.append(pile[-1])
         return pile_last_card_list
     
@@ -266,6 +266,7 @@ class GameView(arcade.View):
                     if len(sequence) == 0:
                         # first card
                         sequence.append(card)
+                if sequence:  
                     playable_cards.append(sequence[-1])
         return playable_cards
 
@@ -485,7 +486,7 @@ class GameView(arcade.View):
             possible_moves[playable_card] = []
             for last_card in all_last_cards:
                 # Check accordance with the rules
-                if last_card.value_index - playable_card.value_index == 1 and last_card.suit==playable_card.suit:
+                if last_card.value_index - playable_card.value_index == 1:
                     possible_moves[playable_card].append(last_card)
         return possible_moves
     
@@ -583,7 +584,7 @@ class MovesView(arcade.View):
         #  draw cards
         self.game_view.card_list.draw()
 
-        if self.item is not None and self.key is not None:
+        if self.item is not None and self.key is not None and self.key !=self.item:
             # Draw an orange rectangle on position to place key
             arcade.draw_rectangle_outline(self.item.position[0],
                                         self.item.position[1], 
@@ -607,15 +608,15 @@ class MovesView(arcade.View):
             items = self.moves[key]
             # Draw the possible move
             if items and self.time_span > 3:
-                    # Take a single possible move
-                    item = items.pop(0)
-                    self.item = item
-                    self.key = key
-                    # Draw that move
-                    self.on_draw()
-                    # Reset timer
-                    self.time_span = 0
-            if not items:
+                # Take a single possible move
+                item = items.pop(0)
+                self.item = item
+                self.key = key
+                # Draw that move
+                self.on_draw()
+                # Reset timer
+                self.time_span = 0
+            if not items and self.time_span > 3:
                 # No more moves for that key. Remove from dict
                 self.moves.pop(key)
         else: 

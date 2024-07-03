@@ -219,7 +219,7 @@ class GameView(arcade.View):
                     card = self.piles[pile_index][i]
                     previous_card = self.held_cards[-1]
                     # Check if accordance with rules
-                    if previous_card.value_index - card.value_index == 1 and previous_card.suit == card.value:
+                    if previous_card.value_index - card.value_index == 1 and previous_card.suit == card.suit:
                         self.held_cards.append(card)
                         self.held_cards_original_position.append(card.position)
                         self.pull_to_top(card)
@@ -273,7 +273,7 @@ class GameView(arcade.View):
         #  check if there are cards in the pile
         if self.piles[pile_index]:
             last_card = self.piles[pile_index][-1]
-            if last_card.value_index - self.held_cards[0].value_index == 1 and last_card.suit == self.held_cards[0].suit:
+            if last_card.value_index - self.held_cards[0].value_index == 1:
                 return True
             else:
                 return False

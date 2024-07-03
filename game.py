@@ -556,7 +556,7 @@ class MovesView(arcade.View):
         super().__init__()
         self.game_view = game_view
         self.moves = possible_moves
-        self.time_span = 0
+        self.time_span = 3
         self.total_time = 0
         self.shown_moves = {}
         self.item = None
@@ -599,15 +599,15 @@ class MovesView(arcade.View):
             # list of possible new positions
             items = self.moves[key]
             # Draw the possible move
-            if self.time_span > 3 and items:
-                # Take a single possible move
-                item = items.pop(0)
-                self.item = item
-                self.key = key
-                # Draw that move
-                self.on_draw()
-                # Reset timer
-                self.time_span = 0
+            if items and self.time_span > 3:
+                    # Take a single possible move
+                    item = items.pop(0)
+                    self.item = item
+                    self.key = key
+                    # Draw that move
+                    self.on_draw()
+                    # Reset timer
+                    self.time_span = 0
             if not items:
                 # No more moves for that key. Remove from dict
                 self.moves.pop(key)

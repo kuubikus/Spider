@@ -218,7 +218,8 @@ class GameView(arcade.View):
                 for i in range(card_index + 1, len(self.piles[pile_index])):
                     card = self.piles[pile_index][i]
                     previous_card = self.held_cards[-1]
-                    if previous_card.value_index - card.value_index == 1:
+                    # Check if accordance with rules
+                    if previous_card.value_index - card.value_index == 1 and previous_card.suit == card.value:
                         self.held_cards.append(card)
                         self.held_cards_original_position.append(card.position)
                         self.pull_to_top(card)
@@ -257,7 +258,7 @@ class GameView(arcade.View):
                     card = pile_face_up[card_index]
                     if len(sequence) > 0:
                         # If sequence valid then add card
-                        if card.value_index - sequence[-1].value_index == 1:
+                        if card.value_index - sequence[-1].value_index == 1 and card.suit == sequence[-1].suit:
                             sequence.append(card)
                         # If card can't be added then stop looking
                         else:
@@ -272,7 +273,7 @@ class GameView(arcade.View):
         #  check if there are cards in the pile
         if self.piles[pile_index]:
             last_card = self.piles[pile_index][-1]
-            if last_card.value_index - self.held_cards[0].value_index == 1:
+            if last_card.value_index - self.held_cards[0].value_index == 1 and last_card.suit == self.held_cards[0].suit:
                 return True
             else:
                 return False
@@ -414,7 +415,7 @@ class GameView(arcade.View):
             card = pile_upwards[card_index]
             if len(sequence) > 0:
                 # If sequence valid then add card
-                if card.value_index - sequence[-1].value_index == 1:
+                if card.value_index - sequence[-1].value_index == 1 and card.suit==sequence[-1].suit:
                     sequence.append(card)
                 # If card can't be added then stop looking
                 else:
@@ -434,14 +435,17 @@ class GameView(arcade.View):
         return sequence
     
     def remove_stack(self, sequence):
+        # A stack has already been removed
         if self.piles[settings.FOUNDATION_PILE]:
+            # Get the top card from previous stack
             previous_top_card = self.piles[settings.FOUNDATION_PILE][-1]
-            print("previous card pos ", previous_top_card.position)
+            # Place new stack on top the old stack with an offset 
             for card in sequence:
                 card.position = previous_top_card.position[0], previous_top_card.position[1] - settings.CARD_VERTICAL_OFFSET
                 self.pull_to_top(card)
                 self.move_card_to_new_pile(card, settings.FOUNDATION_PILE)
         else:
+            # Place new stack on top of the mat
             for card in sequence:
                 card.position = self.pile_mat_list[settings.FOUNDATION_PILE].position
                 self.pull_to_top(card)
@@ -476,10 +480,12 @@ class GameView(arcade.View):
         possible_moves = {}
         all_last_cards = self.get_last_cards(None)
         all_playable_cards = self.get_playable_cards()
+        # Check each playable card against top cards in a pile
         for playable_card in all_playable_cards:
             possible_moves[playable_card] = []
             for last_card in all_last_cards:
-                if last_card.value_index - playable_card.value_index == 1:
+                # Check accordance with the rules
+                if last_card.value_index - playable_card.value_index == 1 and last_card.suit==playable_card.suit:
                     possible_moves[playable_card].append(last_card)
         return possible_moves
     
@@ -552,6 +558,7 @@ class EndView(arcade.View):
         self.window.show_view(game)
 
 class MovesView(arcade.View):
+    """View for displaying possible moves to a player"""
     def __init__(self, game_view, possible_moves):
         super().__init__()
         self.game_view = game_view

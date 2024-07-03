@@ -5,6 +5,7 @@ import arcade
 import cards
 import settings
 import random
+import arcade.gui 
 
 
 class GameView(arcade.View):
@@ -13,6 +14,23 @@ class GameView(arcade.View):
     def __init__(self):
         super().__init__()
         self.game_over = False
+        # Creating a UI MANAGER to handle the UI 
+        self.uimanager = arcade.gui.UIManager() 
+        self.uimanager.enable()
+        # Creating Button using UIFlatButton 
+        button = arcade.gui.UIFlatButton(text="Show moves", 
+                                               width=100) 
+        # Adding button in our uimanager 
+        self.uimanager.add( 
+            arcade.gui.UIAnchorWidget( 
+                anchor_x="right", 
+                anchor_y="bottom", 
+                child=button))
+        
+        @button.event("on_click")
+        def on_click_settings(event):
+            print("Button pressed")
+  
         # Timer set up
         self.total_time = 0.0
         self.timer_text = arcade.Text(
@@ -128,15 +146,14 @@ class GameView(arcade.View):
         for i in range(settings.PLAY_PILE_1, settings.PLAY_PILE_10 + 1):
             self.piles[i][-1].face_up()
 
-        """# Load the start view
+        # Load the start view
         start_screen = StartView(self)
         self.window.show_view(start_screen)
-"""
-        # TESTING show possible moves
+
+        """# TESTING show possible moves
         possible_moves = self.get_possible_moves()
-        
         screen = MovesView(self, possible_moves)
-        self.window.show_view(screen)              
+        self.window.show_view(screen)    """          
 
     def pull_to_top(self, card: arcade.Sprite):
         """ Pull card to top of rendering order (last to render, looks on-top) """
@@ -156,12 +173,14 @@ class GameView(arcade.View):
         self.score_text.draw()
         #  draw cards
         self.card_list.draw()
+        # Drawing our ui manager 
+        self.uimanager.draw() 
 
     def on_mouse_press(self, x, y, button, key_modifiers):
         """ Called when the user presses a mouse button. """
         # Get list of cards we've clicked on
         cards = arcade.get_sprites_at_point((x, y), self.card_list)
-
+        
         # Have we clicked on a card?
         if len(cards) > 0:
             # Might be a stack of cards, get the top one
@@ -211,7 +230,7 @@ class GameView(arcade.View):
                         for remaining_card in self.piles[pile_index][i:]:
                             self.pull_to_top(remaining_card)
                         break
-
+        
     def get_last_cards(self, card_in_hand):
         """ get a SpriteList of all last cards in a pile """
         pile_last_card_list: arcade.SpriteList = arcade.SpriteList()

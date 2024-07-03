@@ -30,6 +30,10 @@ SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 768
 SCREEN_TITLE = "Drag and Drop Cards"
 
+# Show moves button
+BUTTON_X = SCREEN_WIDTH - 150
+BUTTON_Y = SCREEN_HEIGHT - 100
+
 # Face down image
 FACE_DOWN_IMAGE = ":resources:images/cards/cardBack_red2.png"
 

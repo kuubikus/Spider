@@ -29,8 +29,12 @@ class GameView(arcade.View):
         
         @button.event("on_click")
         def on_click_settings(event):
-            print("Button pressed")
-  
+            print("Showing moves")
+            # Show possible moves
+            possible_moves = self.get_possible_moves()
+            screen = MovesView(self, possible_moves)
+            self.window.show_view(screen)
+
         # Timer set up
         self.total_time = 0.0
         self.timer_text = arcade.Text(
@@ -148,12 +152,7 @@ class GameView(arcade.View):
 
         # Load the start view
         start_screen = StartView(self)
-        self.window.show_view(start_screen)
-
-        """# TESTING show possible moves
-        possible_moves = self.get_possible_moves()
-        screen = MovesView(self, possible_moves)
-        self.window.show_view(screen)    """          
+        self.window.show_view(start_screen)          
 
     def pull_to_top(self, card: arcade.Sprite):
         """ Pull card to top of rendering order (last to render, looks on-top) """
@@ -568,12 +567,6 @@ class MovesView(arcade.View):
 
     def on_draw(self):
         self.clear()
-        arcade.draw_text("MOVES",
-                         settings.SCREEN_WIDTH / 2,
-                         settings.SCREEN_HEIGHT / 2,
-                         arcade.color.BLACK,
-                         font_size=20,
-                         anchor_x="center")
         #  draw mats
         self.game_view.pile_mat_list.draw()
         # Draw timer
@@ -624,7 +617,16 @@ class MovesView(arcade.View):
 
         self.time_span += delta_time
         # Update game timer
+        # Accumulate the total time
         self.game_view.total_time += delta_time
+        # Calculate minutes
+        minutes = int(self.game_view.total_time) // 60
+        # Calculate seconds by using a modulus (remainder)
+        seconds = int(self.game_view.total_time) % 60
+        # Calculate 100s of a second
+        seconds_100s = int((self.game_view.total_time - seconds) * 100)
+        # Use string formatting to create a new text string for our timer
+        self.game_view.timer_text.text = f"{minutes:02d}:{seconds:02d}:{seconds_100s:02d}"
                 
     def on_mouse_press(self, _x, _y, _button, _modifiers):
         """ If the user presses the mouse button, stop showing possible moves. """

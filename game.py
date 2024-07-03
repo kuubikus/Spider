@@ -12,6 +12,7 @@ class GameView(arcade.View):
 
     def __init__(self):
         super().__init__()
+        self.game_over = False
         # Timer set up
         self.total_time = 0.0
         self.timer_text = arcade.Text(
@@ -61,6 +62,7 @@ class GameView(arcade.View):
 
     def setup(self):
         """ Set up the game here. Call this function to restart the game. """
+        self.game_over = False
         # Timer
         self.total_time = 0.0
         # Score
@@ -126,9 +128,15 @@ class GameView(arcade.View):
         for i in range(settings.PLAY_PILE_1, settings.PLAY_PILE_10 + 1):
             self.piles[i][-1].face_up()
 
-        # Load the start view
+        """# Load the start view
         start_screen = StartView(self)
         self.window.show_view(start_screen)
+"""
+        # TESTING show possible moves
+        possible_moves = self.get_possible_moves()
+        
+        screen = MovesView(self, possible_moves)
+        self.window.show_view(screen)              
 
     def pull_to_top(self, card: arcade.Sprite):
         """ Pull card to top of rendering order (last to render, looks on-top) """
@@ -214,6 +222,33 @@ class GameView(arcade.View):
                     if pile[-1] != card_in_hand:
                         pile_last_card_list.append(pile[-1])
         return pile_last_card_list
+    
+    def get_playable_cards(self):
+        """ 
+        finds all the playable cards at a given state of the game. A playable card is one that can be moved.
+        If it belongs to a moveable stack then it return the top card. The whole stack will  be moved.
+        Function returns a list of all the cards.
+        """
+        playable_cards = []
+        for pile in self.piles:
+            # Not an empty pile
+            if len(pile) > 0:
+                sequence = []
+                pile_face_up = [card for card in pile if card.is_face_up]
+                for card_index in range(-1,-len(pile_face_up)-1,-1):
+                    card = pile_face_up[card_index]
+                    if len(sequence) > 0:
+                        # If sequence valid then add card
+                        if card.value_index - sequence[-1].value_index == 1:
+                            sequence.append(card)
+                        # If card can't be added then stop looking
+                        else:
+                            break
+                    if len(sequence) == 0:
+                        # first card
+                        sequence.append(card)
+                    playable_cards.append(sequence[-1])
+        return playable_cards
 
     def is_placable(self, pile_index):
         #  check if there are cards in the pile
@@ -286,7 +321,7 @@ class GameView(arcade.View):
                     top_card = self.piles[last_pile_index][-1]
                     if not top_card.is_face_up:
                         top_card.face_up()
-                        # Turning over a card add 10 points
+                        # Turning over a card adds 10 points
                         self.score += 10
 
                 # Check if the move resulted in forming a stack
@@ -297,6 +332,16 @@ class GameView(arcade.View):
                     self.remove_stack(sequence)
                     # Add points
                     self.score += 130
+                    # check if a card needs to be turned over
+                    if len(self.piles[pile_index]) > 0:
+                        top_card = self.piles[pile_index][-1]
+                        if not top_card.is_face_up:
+                            top_card.face_up()
+                            # Turning over a card adds 10 points
+                            self.score += 10
+                    # check if the game is over
+                    if len(self.piles[settings.FOUNDATION_PILE]) == 104:
+                        self.game_over = True
 
         if reset_position:
             # Where-ever we were dropped, it wasn't valid. Reset the each card's position
@@ -398,12 +443,28 @@ class GameView(arcade.View):
         # Update score text
         self.score_text.text = f"Score: {self.score}"
         # Check if the game is over
-        if len(self.piles[settings.FOUNDATION_PILE]) == 104:
+        if self.game_over and len(self.piles[settings.FOUNDATION_PILE]) == 104:
             print("Game is done")
             self.score += 1000000/self.total_time
             # Load the end view
             end_screen = EndView(self)
             self.window.show_view(end_screen)
+
+    def get_possible_moves(self):
+        """
+        Returns a dictionray of possible moves. The key is the card that can be played. 
+        The item is a list of cards that the key card can be placed on.
+        """
+        possible_moves = {}
+        all_last_cards = self.get_last_cards(None)
+        all_playable_cards = self.get_playable_cards()
+        for playable_card in all_playable_cards:
+            possible_moves[playable_card] = []
+            for last_card in all_last_cards:
+                if last_card.value_index - playable_card.value_index == 1:
+                    possible_moves[playable_card].append(last_card)
+        return possible_moves
+    
 
 class StartView(arcade.View):
     """ View to show before the game starts """
@@ -457,7 +518,7 @@ class EndView(arcade.View):
         timer_text = f"{minutes:02d}:{seconds:02d}:{seconds_100s:02d}"
 
         arcade.draw_text("Click to re-start the game. "
-                         "Your score was {} with time {}".format(self.game_view.score, timer_text),
+                         "Your score was {} with time {}".format(int(self.game_view.score), timer_text),
                          settings.SCREEN_WIDTH / 2,
                          settings.SCREEN_HEIGHT / 2,
                          arcade.color.BLACK,
@@ -471,6 +532,84 @@ class EndView(arcade.View):
         game = GameView()
         game.setup()
         self.window.show_view(game)
+
+class MovesView(arcade.View):
+    def __init__(self, game_view, possible_moves):
+        super().__init__()
+        self.game_view = game_view
+        self.moves = possible_moves
+        self.time_span = 0
+        self.total_time = 0
+        self.shown_moves = {}
+        self.item = None
+        self.key = None
+
+    def on_show_view(self):
+        arcade.set_background_color(arcade.color.AMAZON)
+
+    def on_draw(self):
+        self.clear()
+        arcade.draw_text("MOVES",
+                         settings.SCREEN_WIDTH / 2,
+                         settings.SCREEN_HEIGHT / 2,
+                         arcade.color.BLACK,
+                         font_size=20,
+                         anchor_x="center")
+        #  draw mats
+        self.game_view.pile_mat_list.draw()
+        # Draw timer
+        self.game_view.timer_text.draw()
+        # Draw Score
+        self.game_view.score_text.draw()
+        #  draw cards
+        self.game_view.card_list.draw()
+
+        if self.item is not None and self.key is not None:
+            # Draw an orange rectangle on position to place key
+            arcade.draw_rectangle_outline(self.item.position[0],
+                                        self.item.position[1], 
+                                        width=settings.CARD_WIDTH+3,
+                                        height=settings.CARD_HEIGHT+3,
+                                        color=arcade.color.RED,
+                                        border_width=3)
+            # Draw an yellow rectangle around key
+            arcade.draw_rectangle_outline(self.key.position[0],
+                                        self.key.position[1], 
+                                        width=settings.CARD_WIDTH+3,
+                                        height=settings.CARD_HEIGHT+3,
+                                        color=arcade.color.YELLOW,
+                                        border_width=3)
+    
+    def on_update(self, delta_time: float):
+        # Take the first value pair in the moves dict
+        if self.moves.keys():
+            key = list(self.moves.keys())[0]
+            # list of possible new positions
+            items = self.moves[key]
+            # Draw the possible move
+            if self.time_span > 3 and items:
+                # Take a single possible move
+                item = items.pop(0)
+                self.item = item
+                self.key = key
+                # Draw that move
+                self.on_draw()
+                # Reset timer
+                self.time_span = 0
+            if not items:
+                # No more moves for that key. Remove from dict
+                self.moves.pop(key)
+        else: 
+            # No more moves to show. Switch back to game
+            self.window.show_view(self.game_view)
+
+        self.time_span += delta_time
+        # Update game timer
+        self.game_view.total_time += delta_time
+                
+    def on_mouse_press(self, _x, _y, _button, _modifiers):
+        """ If the user presses the mouse button, stop showing possible moves. """
+        self.window.show_view(self.game_view)
 
 def main():
 

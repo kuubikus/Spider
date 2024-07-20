@@ -264,7 +264,6 @@ class GameView(arcade.View):
     def undo(self, move_no):
         for i in range(10,-1,-1):
             pile = self.piles[i]
-            print("currently looking at cards from pile ", i)
             for j, card in enumerate(pile):
                 if card.is_face_up:
                     if move_no in card.history.keys():
@@ -274,7 +273,6 @@ class GameView(arcade.View):
                             card.position = position
                             # Update pile
                             self.move_card_to_new_pile(card,previous_pile_index)
-                            print("previous index", previous_pile_index)
                             # Update card history
                             card.add_to_history(self.no_of_moves_made, previous_pile_index, card.position)
                         if flipped:

@@ -16,6 +16,8 @@ class GameView(arcade.View):
         self.game_over = False
         # History
         self.no_of_moves_made = 0
+        # Necessary to undo more than one turn
+        self.undo_counter = -1
         # Creating a UI MANAGER to handle the UI 
         self.uimanager = arcade.gui.UIManager() 
         self.uimanager.enable()
@@ -52,7 +54,9 @@ class GameView(arcade.View):
         def on_click_button(event):
             print("Undo")
             # Undo
-            self.undo(self.no_of_moves_made-1)
+            self.undo_counter += 2
+            print(self.undo_counter)
+            self.undo(self.no_of_moves_made-self.undo_counter)
 
         # Timer set up
         self.total_time = 0.0
@@ -210,6 +214,8 @@ class GameView(arcade.View):
 
             # Are we clicking on the bottom deck, to deal cards on top?
             if pile_index == settings.BOTTOM_FACE_DOWN_PILE:
+                # New action, reset undo counter
+                self.undo_counter = -1
                 for pile_index in range(settings.PLAY_PILE_1, settings.PLAY_PILE_10 + 1):
                     pile = self.piles[pile_index]
                     if pile and self.piles[settings.BOTTOM_FACE_DOWN_PILE]:
@@ -358,6 +364,8 @@ class GameView(arcade.View):
 
             # Is it on a middle play pile?
             elif settings.PLAY_PILE_1 <= pile_index <= settings.PLAY_PILE_10:
+                # New action - reset undo counter
+                self.undo_counter = -1
                 # Are there already cards there?
                 if len(self.piles[pile_index]) > 0:
                     # Move cards to proper position

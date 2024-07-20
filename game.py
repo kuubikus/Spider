@@ -6,7 +6,7 @@ import cards
 import settings
 import random
 import arcade.gui 
-
+import gymnasium as gym
 
 class GameView(arcade.View):
     """ Main application class. """
@@ -14,18 +14,31 @@ class GameView(arcade.View):
     def __init__(self):
         super().__init__()
         self.game_over = False
+        # History
+        self.no_of_moves_made = 0
         # Creating a UI MANAGER to handle the UI 
         self.uimanager = arcade.gui.UIManager() 
         self.uimanager.enable()
         # Creating Button using UIFlatButton 
         button = arcade.gui.UIFlatButton(text="Show moves", 
                                                width=100) 
+        # Creating Undo Button using UIFlatButton 
+        undo_button = arcade.gui.UIFlatButton(text="Undo", 
+                                               width=100)
         # Adding button in our uimanager 
         self.uimanager.add( 
             arcade.gui.UIAnchorWidget( 
                 anchor_x="right", 
                 anchor_y="bottom", 
                 child=button))
+        
+        # Adding undo button in our uimanager 
+        self.uimanager.add( 
+            arcade.gui.UIAnchorWidget( 
+                anchor_x="right", 
+                anchor_y="bottom",
+                align_x=-200,
+                child=undo_button))
         
         @button.event("on_click")
         def on_click_button(event):
@@ -34,6 +47,12 @@ class GameView(arcade.View):
             possible_moves = self.get_possible_moves()
             screen = MovesView(self, possible_moves)
             self.window.show_view(screen)
+        
+        @undo_button.event("on_click")
+        def on_click_button(event):
+            print("Undo")
+            # Undo
+            self.undo(self.no_of_moves_made-1)
 
         # Timer set up
         self.total_time = 0.0
@@ -48,7 +67,7 @@ class GameView(arcade.View):
         # Score set up
         self.score = 500
         self.score_text = arcade.Text(
-            text=f"Score: {self.score}",
+            text=f"Score: {self.score} Moves: {self.no_of_moves_made}",
             start_x=settings.TIMER_X,
             start_y=settings.SCORE_Y,
             color=arcade.color.WHITE,
@@ -92,22 +111,24 @@ class GameView(arcade.View):
         #  cards being dragged
         self.held_cards = []
         self.held_cards_og_pos = []
+        # History
+        self.no_of_moves_made = 0
 
         # ---  Create the mats the cards go on.
 
         # Sprite list with all the mats tha cards lay on.
         self.pile_mat_list: arcade.SpriteList = arcade.SpriteList()
 
-        # Create the mat for the bottom face down pile
-        pile = arcade.SpriteSolidColor(settings.MAT_WIDTH, settings.MAT_HEIGHT, arcade.csscolor.DARK_OLIVE_GREEN)
-        pile.position = settings.START_X, settings.BOTTOM_Y
-        self.pile_mat_list.append(pile)
-
         # Create the 10 piles
         for i in range(10):
             pile = arcade.SpriteSolidColor(settings.MAT_WIDTH, settings.MAT_HEIGHT, arcade.csscolor.DARK_OLIVE_GREEN)
             pile.position = settings.START_X + i * settings.X_SPACING, settings.TOP_Y
             self.pile_mat_list.append(pile)
+
+        # Create the mat for the bottom face down pile
+        pile = arcade.SpriteSolidColor(settings.MAT_WIDTH, settings.MAT_HEIGHT, arcade.csscolor.DARK_OLIVE_GREEN)
+        pile.position = settings.START_X, settings.BOTTOM_Y
+        self.pile_mat_list.append(pile)
 
         # Create foundation pile
         pile = arcade.SpriteSolidColor(settings.MAT_WIDTH, settings.MAT_HEIGHT, arcade.csscolor.DARK_OLIVE_GREEN)
@@ -125,10 +146,10 @@ class GameView(arcade.View):
                     card.position = settings.START_X, settings.BOTTOM_Y
                     self.card_list.append(card)
         
-        # Shuffle the cards
+        """# Shuffle the cards
         for pos1 in range(len(self.card_list)):
             pos2 = random.randrange(len(self.card_list))
-            self.card_list.swap(pos1, pos2)
+            self.card_list.swap(pos1, pos2)"""
 
         self.piles = [[] for x in range(settings.PILE_COUNT)]
         # Put all the cards in the bottom face-down pile
@@ -196,6 +217,8 @@ class GameView(arcade.View):
                         card = self.piles[settings.BOTTOM_FACE_DOWN_PILE][-1]
                         # Flip face up
                         card.face_up()
+                        # Update history
+                        card.add_to_history(self.no_of_moves_made, settings.BOTTOM_FACE_DOWN_PILE, card.position)
                         # Move card to position
                         card.position = last_card.center_x, last_card.center_y - settings.CARD_VERTICAL_OFFSET
                         # Remove card from face down pile
@@ -204,7 +227,8 @@ class GameView(arcade.View):
                         self.move_card_to_new_pile(card, pile_index)
                         # Put on top draw-order wise
                         self.pull_to_top(card)
-
+                self.no_of_moves_made += 1
+                
             else:
                 # All other cases, grab the face-up card we are clicking on
                 self.held_cards = [primary_card]
@@ -230,7 +254,27 @@ class GameView(arcade.View):
                         for remaining_card in self.piles[pile_index][i:]:
                             self.pull_to_top(remaining_card)
                         break
-        
+                    
+    def undo(self, move_no):
+        self.no_of_moves_made += 1
+        for i in range(10,-1,-1):
+            pile = self.piles[i]
+            for card in pile:
+                if card.is_face_up:
+                    if move_no in card.history.keys():
+                        previous_pile_index = card.history[move_no][1]
+                        position = card.history[move_no][0]
+                        # Move card
+                        card.position = position
+                        # Update pile
+                        self.move_card_to_new_pile(card,previous_pile_index)
+                        print(previous_pile_index)
+                        # Check if card needs to be turned over
+                        if previous_pile_index == settings.BOTTOM_FACE_DOWN_PILE:
+                            card.face_down()
+                        # Update card history
+                        card.add_to_history(self.no_of_moves_made, previous_pile_index, card.position)
+
     def get_last_cards(self, card_in_hand):
         """ get a SpriteList of all last cards in a pile """
         pile_last_card_list: arcade.SpriteList = arcade.SpriteList()
@@ -314,17 +358,20 @@ class GameView(arcade.View):
 
             # Is it on a middle play pile?
             elif settings.PLAY_PILE_1 <= pile_index <= settings.PLAY_PILE_10:
+                self.no_of_moves_made += 1
                 # Are there already cards there?
                 if len(self.piles[pile_index]) > 0:
                     # Move cards to proper position
                     top_card = self.piles[pile_index][-1]
                     for i, dropped_card in enumerate(self.held_cards):
+                        dropped_card.add_to_history(self.no_of_moves_made, last_pile_index, self.held_cards_original_position[last_pile_index])
                         dropped_card.position = top_card.center_x, \
                                                 top_card.center_y - settings.CARD_VERTICAL_OFFSET * (i + 1)
                 else:
                     # Are there no cards in the middle play pile?
                     for i, dropped_card in enumerate(self.held_cards):
                         # Move cards to proper position
+                        dropped_card.add_to_history(self.no_of_moves_made, last_pile_index, self.held_cards_original_position[last_pile_index])
                         dropped_card.position = pile.center_x, \
                                                 pile.center_y - settings.CARD_VERTICAL_OFFSET * i
 
@@ -362,6 +409,8 @@ class GameView(arcade.View):
                     # check if the game is over
                     if len(self.piles[settings.FOUNDATION_PILE]) == 104:
                         self.game_over = True
+            
+            
 
         if reset_position:
             # Where-ever we were dropped, it wasn't valid. Reset the each card's position
@@ -464,7 +513,7 @@ class GameView(arcade.View):
         # Use string formatting to create a new text string for our timer
         self.timer_text.text = f"{minutes:02d}:{seconds:02d}:{seconds_100s:02d}"
         # Update score text
-        self.score_text.text = f"Score: {self.score}"
+        self.score_text.text = f"Score: {self.score} Moves: {self.no_of_moves_made}"
         # Check if the game is over
         if self.game_over and len(self.piles[settings.FOUNDATION_PILE]) == 104:
             print("Game is done")
@@ -490,7 +539,6 @@ class GameView(arcade.View):
                     possible_moves[playable_card].append(last_card)
         return possible_moves
     
-
 class StartView(arcade.View):
     """ View to show before the game starts """
     def __init__(self, game_view):

@@ -11,11 +11,14 @@ class Card(arcade.Sprite):
         self.suit = suit
         self.value = value
         self.value_index = settings.CARD_VALUES.index(self.value)
-
+        self.history={}
         # Image to use for the sprite when face up
         self.image_file_name = f":resources:images/cards/card{self.suit}{self.value}.png"
         self.is_face_up = False
         super().__init__(settings.FACE_DOWN_IMAGE, scale, hit_box_algorithm="None")
+
+    def add_to_history(self, move_no, pile_index, position):
+        self.history[move_no] = [position, pile_index]
 
     def face_down(self):
         """ Turn card face-down """

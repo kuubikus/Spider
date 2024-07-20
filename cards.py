@@ -17,8 +17,8 @@ class Card(arcade.Sprite):
         self.is_face_up = False
         super().__init__(settings.FACE_DOWN_IMAGE, scale, hit_box_algorithm="None")
 
-    def add_to_history(self, move_no, pile_index, position):
-        self.history[move_no] = [position, pile_index]
+    def add_to_history(self, move_no, pile_index=None, position=None, flipped=False):
+        self.history[move_no] = [position, pile_index, flipped]
 
     def face_down(self):
         """ Turn card face-down """

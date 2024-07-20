@@ -218,7 +218,7 @@ class GameView(arcade.View):
                         # Flip face up
                         card.face_up()
                         # Update history
-                        card.add_to_history(self.no_of_moves_made, settings.BOTTOM_FACE_DOWN_PILE, card.position)
+                        card.add_to_history(self.no_of_moves_made, settings.BOTTOM_FACE_DOWN_PILE, card.position,True)
                         # Move card to position
                         card.position = last_card.center_x, last_card.center_y - settings.CARD_VERTICAL_OFFSET
                         # Remove card from face down pile
@@ -256,24 +256,24 @@ class GameView(arcade.View):
                         break
                     
     def undo(self, move_no):
-        self.no_of_moves_made += 1
         for i in range(10,-1,-1):
             pile = self.piles[i]
-            for card in pile:
+            print("currently looking at cards from pile ", i)
+            for j, card in enumerate(pile):
                 if card.is_face_up:
                     if move_no in card.history.keys():
-                        previous_pile_index = card.history[move_no][1]
-                        position = card.history[move_no][0]
-                        # Move card
-                        card.position = position
-                        # Update pile
-                        self.move_card_to_new_pile(card,previous_pile_index)
-                        print(previous_pile_index)
-                        # Check if card needs to be turned over
-                        if previous_pile_index == settings.BOTTOM_FACE_DOWN_PILE:
+                        position, previous_pile_index, flipped = card.history[move_no]
+                        if position is not None and previous_pile_index is not None:
+                            # Move card
+                            card.position = position
+                            # Update pile
+                            self.move_card_to_new_pile(card,previous_pile_index)
+                            print("previous index", previous_pile_index)
+                            # Update card history
+                            card.add_to_history(self.no_of_moves_made, previous_pile_index, card.position)
+                        if flipped:
                             card.face_down()
-                        # Update card history
-                        card.add_to_history(self.no_of_moves_made, previous_pile_index, card.position)
+        self.no_of_moves_made += 1
 
     def get_last_cards(self, card_in_hand):
         """ get a SpriteList of all last cards in a pile """
@@ -358,36 +358,33 @@ class GameView(arcade.View):
 
             # Is it on a middle play pile?
             elif settings.PLAY_PILE_1 <= pile_index <= settings.PLAY_PILE_10:
-                self.no_of_moves_made += 1
                 # Are there already cards there?
                 if len(self.piles[pile_index]) > 0:
                     # Move cards to proper position
                     top_card = self.piles[pile_index][-1]
                     for i, dropped_card in enumerate(self.held_cards):
-                        dropped_card.add_to_history(self.no_of_moves_made, last_pile_index, self.held_cards_original_position[last_pile_index])
+                        dropped_card.add_to_history(self.no_of_moves_made, last_pile_index, self.held_cards_original_position[i])
                         dropped_card.position = top_card.center_x, \
                                                 top_card.center_y - settings.CARD_VERTICAL_OFFSET * (i + 1)
                 else:
                     # Are there no cards in the middle play pile?
                     for i, dropped_card in enumerate(self.held_cards):
                         # Move cards to proper position
-                        dropped_card.add_to_history(self.no_of_moves_made, last_pile_index, self.held_cards_original_position[last_pile_index])
+                        dropped_card.add_to_history(self.no_of_moves_made, last_pile_index, self.held_cards_original_position[i])
                         dropped_card.position = pile.center_x, \
                                                 pile.center_y - settings.CARD_VERTICAL_OFFSET * i
-
                 
                 for card in self.held_cards:
                     # Cards are in the right position, but we need to move them to the right list
                     self.move_card_to_new_pile(card, pile_index)
 
-                # Success, don't reset position of cards
-                reset_position = False
-
+                
                 # Flip over top card
                 if len(self.piles[last_pile_index]) > 0:
                     top_card = self.piles[last_pile_index][-1]
                     if not top_card.is_face_up:
                         top_card.face_up()
+                        top_card.add_to_history(self.no_of_moves_made, flipped=True)
                         # Turning over a card adds 10 points
                         self.score += 10
 
@@ -404,11 +401,16 @@ class GameView(arcade.View):
                         top_card = self.piles[pile_index][-1]
                         if not top_card.is_face_up:
                             top_card.face_up()
+                            top_card.add_to_history(self.no_of_moves_made, flipped=True)
                             # Turning over a card adds 10 points
                             self.score += 10
                     # check if the game is over
                     if len(self.piles[settings.FOUNDATION_PILE]) == 104:
                         self.game_over = True
+
+                # Success, don't reset position of cards
+                reset_position = False
+                self.no_of_moves_made += 1
             
             
 
